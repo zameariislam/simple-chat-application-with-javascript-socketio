@@ -15,9 +15,6 @@ const msgForm = document.getElementById("msg_form")
 // global variables 
 let activeUser
 
-
-
-
 //   set user name 
 
 nameform.addEventListener('submit', (e) => {
@@ -55,6 +52,21 @@ socket.on('activeUser', (users) => {
         const li = document.createElement('li')
         li.style.cursor = 'pointer'
         li.addEventListener('click', () => {
+            if (user.id === socket.id) {
+                
+                messages.innerHTML = ' '
+
+                innerCanvas.hidden = true
+               
+                msg_form[1].value =' '
+                return
+
+            }
+
+            // reset previous message 
+
+            messages.innerHTML = ' '
+
             innerCanvas.hidden = false
             displayName.innerText = user.name
             msg_form[1].value = user.id
@@ -80,16 +92,14 @@ socket.on('activeUser', (users) => {
 msgForm.addEventListener('submit', (e) => {
     e.preventDefault()
     const msg = msgForm[0].value
-    const receiverId = msgForm[1].value
+    const id = msgForm[1].value
+
     const senderId = socket.id
 
     if (msg) {
-        socket.emit('send_a_msg', { msg, receiverId, senderId }, () => {
+        socket.emit('send_a_msg', { msg, id }, () => {
 
             showMessageUI(msg, 'You')
-
-
-
             msgForm[0].value = ' '
 
         })
@@ -103,30 +113,26 @@ msgForm.addEventListener('submit', (e) => {
 
 // receiving private message
 
-socket.on('receive_msg', (data, name) => {
-    console.log('data',data)
-    console.log(data.senderId)
-    // console.log(senderId)
+socket.on('receive_msg', (data, name, senderId) => {
 
 
     // const user=activeUser.find(u=>u.id)
     innerCanvas.hidden = false
     displayName.innerText = name
-    msg_form[1].value = data.senderId
-    
-
-    showMessageUI(data.msg,name)
+    msg_form[1].value = senderId
 
 
+    showMessageUI(data.msg, name)
 
 
 })
 
 
 
-const showMessageUI = (msg,name) => {
+const showMessageUI = (msg, name) => {
     if (name === 'You') {
         const li = document.createElement('li')
+        li.classList.add('list-group-item')
         li.innerText = `${name} : ${msg}`
         messages.appendChild(li)
     }
@@ -136,11 +142,6 @@ const showMessageUI = (msg,name) => {
         messages.appendChild(li)
 
     }
-
-
-
-
-
 
 
 }

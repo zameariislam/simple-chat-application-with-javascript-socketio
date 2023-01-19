@@ -1,12 +1,13 @@
 const express = require('express');
+
 const app = express();
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
+
+
 app.use(express.static('public'))
-
-
 
 
 
@@ -35,19 +36,9 @@ io.on('connection', (socket) => {
                 activeUser.push(user)
             }
 
-
-
-
         })
 
-
-
-
         return activeUser
-
-
-
-
 
     }
 
@@ -78,12 +69,13 @@ io.on('connection', (socket) => {
 
     socket.on('send_a_msg', (data, cb) => {
         
+        
         console.log(data)
 
         // to individual socketid (private message)
         // console.log('senderId',socket.id)
 
-        io.to(data.receiverId).emit('receive_msg', data,socket.name);
+        io.to(data.id).emit('receive_msg', data,socket.name,socket.id);
 
         cb()
 
