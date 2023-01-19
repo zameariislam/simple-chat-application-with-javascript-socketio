@@ -2,6 +2,8 @@ let socket = io();
 
 // selection 
 const nameform = document.getElementById("name_form")
+const createRoomInput = document.getElementById("create_room")
+const roomButton = document.getElementById("create-btn")
 const room = document.querySelector(".room")
 
 const formArea = document.querySelector(".name")
@@ -9,7 +11,9 @@ const onlineUserList = document.getElementById("onlineUserList")
 const innerCanvas = document.querySelector('.inner_canvas')
 const displayName = document.querySelector(".displayNmae")
 const messages = document.querySelector(".messages")
+const modal = document.querySelector(".modal")
 const msgForm = document.getElementById("msg_form")
+const roomAccordian = document.getElementById("accordionPanelsStayOpenExample")
 
 
 // global variables 
@@ -53,12 +57,12 @@ socket.on('activeUser', (users) => {
         li.style.cursor = 'pointer'
         li.addEventListener('click', () => {
             if (user.id === socket.id) {
-                
+
                 messages.innerHTML = ' '
 
                 innerCanvas.hidden = true
-               
-                msg_form[1].value =' '
+
+                msg_form[1].value = ' '
                 return
 
             }
@@ -145,6 +149,73 @@ const showMessageUI = (msg, name) => {
 
 
 }
+
+
+// create room 
+
+roomButton.addEventListener('click', () => {
+    const roomName = createRoomInput.value
+
+    if (roomName) {
+
+        socket.emit('create_room', roomName, () => {
+            console.log('created')
+
+        })
+        modalClose()
+
+    }
+
+
+})
+
+
+// get public rooms 
+
+socket.on('getPublicRooms', (publicRooms) => {
+
+    publicRooms.forEach(room => {
+        const accordionItem = document.createElement('div')
+        accordionItem.classList.add("accordion-item")
+        accordionItem.innerHTML = `
+        <h2 class="accordion-header" id=${room.id}>
+      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+        ${room.name}
+      </button>
+    </h2>
+    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+      <div class="accordion-body">
+        <strong>This is the first item's accordion body.</strong> It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
+      </div>
+    </div>
+
+
+        `
+
+
+
+
+    })
+
+})
+
+// modal close 
+
+function modalClose(){
+    modal.classList.remove('show')
+    modal.style.dispay='none'
+    createRoomInput.value=' '
+    document.body.classList.remove('modal-open')
+    document.body.style={}
+    document.querySelector('.modal-backdrop')?.remove('show')
+    
+
+}
+
+
+
+
+
 
 
 
