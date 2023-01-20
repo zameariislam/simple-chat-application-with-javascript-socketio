@@ -13,6 +13,7 @@ const displayName = document.querySelector(".displayNmae")
 const messages = document.querySelector(".messages")
 const modal = document.querySelector(".modal")
 const msgForm = document.getElementById("msg_form")
+
 const roomAccordian = document.getElementById("accordionPanelsStayOpenExample")
 
 
@@ -62,7 +63,7 @@ socket.on('activeUser', (users) => {
 
                 innerCanvas.hidden = true
 
-                msg_form[1].value = ' '
+                msgForm[1].value = ' '
                 return
 
             }
@@ -73,7 +74,8 @@ socket.on('activeUser', (users) => {
 
             innerCanvas.hidden = false
             displayName.innerText = user.name
-            msg_form[1].value = user.id
+            msgForm[1].value = user.id
+            msgForm[1].dataset.room = false
 
         })
 
@@ -95,21 +97,48 @@ socket.on('activeUser', (users) => {
 
 msgForm.addEventListener('submit', (e) => {
     e.preventDefault()
-    const msg = msgForm[0].value
-    const id = msgForm[1].value
+    const isRoom = msgForm[1].dataset.room
+    if (isRoom) {
+        const msg = msgForm[0].value
+        const id = msgForm[1].value
 
-    const senderId = socket.id
+        if (msg) {
+            socket.emit('send_a_msg', { msg, id, isRoom }, () => {
 
-    if (msg) {
-        socket.emit('send_a_msg', { msg, id }, () => {
+                showMessageUI(msg, 'You')
+                msgForm[0].value = ' '
 
-            showMessageUI(msg, 'You')
-            msgForm[0].value = ' '
+            })
 
-        })
+
+        }
+        else {
+            return
+        }
 
 
     }
+    else {
+        const msg = msgForm[0].value
+        const id = msgForm[1].value
+
+
+
+        if (msg) {
+            socket.emit('send_a_msg', { msg, id, isRoom }, () => {
+
+                showMessageUI(msg, 'You')
+                msgForm[0].value = ' '
+
+            })
+
+
+        }
+
+    }
+
+
+
 
 
 })
@@ -119,14 +148,35 @@ msgForm.addEventListener('submit', (e) => {
 
 socket.on('receive_msg', (data, name, senderId) => {
 
-
-    // const user=activeUser.find(u=>u.id)
-    innerCanvas.hidden = false
-    displayName.innerText = name
-    msg_form[1].value = senderId
+    console.log(data)
 
 
-    showMessageUI(data.msg, name)
+    if (data.isRoom) {
+        console.log(data)
+        console.log('I am from room inside')
+
+        innerCanvas.hidden = false
+        displayName.innerText = data.id
+        msgForm[1].value = data.id
+        msgForm[1].dataset.room = data.id
+        showMessageUI(data.msg, name)
+
+
+    }
+    else {
+
+
+
+        innerCanvas.hidden = false
+        displayName.innerText = name
+        msgForm[1].value = senderId
+        msgForm[1].dataset.room = false
+
+
+        showMessageUI(data.msg, name)
+
+    }
+
 
 
 })
@@ -159,7 +209,7 @@ roomButton.addEventListener('click', () => {
     if (roomName) {
 
         socket.emit('create_room', roomName, () => {
-            console.log('created')
+
 
         })
         modalClose()
@@ -170,45 +220,99 @@ roomButton.addEventListener('click', () => {
 })
 
 
-// get public rooms 
+// show public rooms 
+socket.on('getPublicRooms', (rooms) => {
 
-socket.on('getPublicRooms', (publicRooms) => {
+    console.log(rooms)
+    showPublicRoom(rooms)
 
-    publicRooms.forEach(room => {
-        const accordionItem = document.createElement('div')
-        accordionItem.classList.add("accordion-item")
-        accordionItem.innerHTML = `
-        <h2 class="accordion-header" id=${room.id}>
-      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-        ${room.name}
-      </button>
-    </h2>
-    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
-      <div class="accordion-body">
-        <strong>This is the first item's accordion body.</strong> It is shown by default, until the collapse plugin adds the appropriate classes that we use to style each element. These classes control the overall appearance, as well as the showing and hiding via CSS transitions. You can modify any of this with custom CSS or overriding our default variables. It's also worth noting that just about any HTML can go within the <code>.accordion-body</code>, though the transition does limit overflow.
-      </div>
-    </div>
+})
 
 
-        `
+function showPublicRoom(rooms) {
+    roomAccordian.innerHTML = ' '
+    const singleroom = document.createElement("div");
+    singleroom.classList.add("accordion-item");
+    rooms.forEach(room => {
+        const singleroom = document.createElement("div");
+        singleroom.classList.add("accordion-item");
+        singleroom.innerHTML = `
+        <h2 class="accordion-header" id="${room.id}id">
+                <button
+                  class="accordion-button collapsed"
+                  type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#${room.id}option"
+                  aria-expanded="false"
+                  aria-controls="${room.id}option"
+                  
+                >
+                  ${room.name} (${room.size})
+                  <span onclick="joinRoom('${room.name}')"  class="material-symbols-outlined">
+                      group_add
+                  </span>
+                </button>
+              </h2>
+              <div
+              id="${room.id}option"
+              class="accordion-collapse collapse"
+              aria-labelledby="${room.id}id"
+            >
+              <div class="accordion-body">
+                <ul id="participants"> </ul>
+              </div>
+            </div>`;
+        const participants = singleroom.querySelector("#participants");
+        room?.perticipants.forEach(participant => {
+            const li = document.createElement("li");
+            li.textContent = participant.name;
+            participants.appendChild(li);
+        });
+
+        roomAccordian.appendChild(singleroom);
+
+
 
 
 
 
     })
 
-})
+}
+
+// join a room 
+
+const joinRoom = (roomName) => {
+    socket.emit('join-to-room', roomName, () => {
+        innerCanvas.hidden = false
+        displayName.textContent = roomName
+        msgForm[1].value = roomName
+        msgForm[1].dataset.room = true
+        messages.innerHTML = ' '
+
+    })
+
+
+
+
+}
+
+
+
+
+
+
 
 // modal close 
 
-function modalClose(){
+function modalClose() {
     modal.classList.remove('show')
-    modal.style.dispay='none'
-    createRoomInput.value=' '
+    modal.style.dispay = 'none'
+    createRoomInput.value = ' '
     document.body.classList.remove('modal-open')
-    document.body.style={}
+    document.body.style = {}
     document.querySelector('.modal-backdrop')?.remove('show')
-    
+
 
 }
 

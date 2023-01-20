@@ -66,37 +66,37 @@ io.on('connection', (socket) => {
         console.log('sids', sids)
 
         const publicRoom = []
-        
-        let roomId=0
 
-        for ( let room of roomArray) {
+        let roomId = 0
+
+        for (let room of roomArray) {
             if (!sidArray.includes(room)) {
-                
-                const perticipantSet=rooms.get(room)
-                const size=perticipantSet.size
-                const roomMember=[]
 
-                for(let perticipant of [...rooms.get(room)]){
-                  const userSocket=  allSockets.get(perticipant)
-                   roomMember.push({
-                    id:userSocket.id,
-                    name:userSocket.name
+                const perticipantSet = rooms.get(room)
+                const size = perticipantSet.size
+                const roomMember = []
 
-                   })
-                 
+                for (let perticipant of [...rooms.get(room)]) {
+                    const userSocket = allSockets.get(perticipant)
+                    roomMember.push({
+                        id: userSocket.id,
+                        name: userSocket.name
+
+                    })
+
                 }
                 publicRoom.push({
-                    name:room,
-                    id:'zzz'+roomId+ Date.now(),
+                    name: room,
+                    id: 'zzz' + roomId + Date.now(),
                     size,
-                    perticipant:roomMember
-                    
-                
+                    perticipants: roomMember
 
 
-                  })
-                
-               
+
+
+                })
+
+
             }
             ++roomId
 
@@ -117,10 +117,16 @@ io.on('connection', (socket) => {
 
     socket.on('setName', async (name, cb) => {
 
+
         socket.name = name
         cb()
         const activeUser = await getOnlineUsers()
-        getPublicRooms()
+
+        const rooms = await getPublicRooms()
+
+
+
+        io.emit('getPublicRooms', rooms)
 
 
 
@@ -140,29 +146,64 @@ io.on('connection', (socket) => {
     socket.on('create_room', async (name, cb) => {
         socket.join(name)
         const rooms = await getPublicRooms()
-        console.log(rooms)
-        io.emit('getPublicRooms',rooms)
-
-
-
+        // console.log(rooms)
+        io.emit('getPublicRooms', rooms)
 
         cb()
     })
+
+    // join to a room 
+    socket.on('join-to-room', async (name, cb) => {
+        socket.join(name)
+        const rooms = await getPublicRooms()
+
+        io.emit('getPublicRooms', rooms)
+        cb()
+
+    })
+
 
 
     // listen a message 
 
     socket.on('send_a_msg', (data, cb) => {
+       
+
+        const isRoom = data.isRoom === 'false' ? false : data.isRoom
+        data.isRoom = isRoom
 
 
         console.log(data)
+    
 
         // to individual socketid (private message)
         // console.log('senderId',socket.id)
 
-        io.to(data.id).emit('receive_msg', data, socket.name, socket.id);
+        if (isRoom) {
+            console.log(data.id)
+            console.log('I am from room')
+            socket.to(data.id).emit('receive_msg',data,socket.name )
+          
+            cb()
+           
+        }
+        else{
+            console.log('I am not from room')
+            io.to(data.id).emit('receive_msg', data, socket.name, socket.id);
+            cb()
+            
+           
 
-        cb()
+           
+        }
+
+
+
+
+
+
+
+        
 
 
     })
@@ -172,11 +213,11 @@ io.on('connection', (socket) => {
     socket.on('disconnect', async () => {
         console.log('user disconnected');
         const activeUser = await getOnlineUsers()
-        console.log(activeUser)
+        // console.log(activeUser)
 
         const rooms = await getPublicRooms()
-        console.log(rooms)
-        io.emit('getPublicRooms',rooms)
+        // console.log(rooms)
+        io.emit('getPublicRooms', rooms)
 
 
         // to all connected clients
