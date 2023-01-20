@@ -193,17 +193,21 @@ io.on('connection', (socket) => {
             cb()
             
            
-
            
         }
+   
 
 
+    })
 
+    // leave a room 
 
+    socket.on('leave-room',async (name,cb)=>{
+        socket.leave(name)
+        const rooms = await getPublicRooms()
 
-
-
-        
+        io.emit('getPublicRooms', rooms)
+        cb()
 
 
     })

@@ -251,6 +251,11 @@ function showPublicRoom(rooms) {
                   <span onclick="joinRoom('${room.name}')"  class="material-symbols-outlined">
                       group_add
                   </span>
+                  <span onclick="leaveRoom('${room.name}')"  class="material-symbols-outlined">
+                      logout
+                  </span>
+                  
+                
                 </button>
               </h2>
               <div
@@ -292,6 +297,16 @@ const joinRoom = (roomName) => {
 
     })
 
+
+}
+
+const leaveRoom = (roomName) => {
+
+    socket.emit('leave-room', roomName, () => {
+        innerCanvas.hidden = true
+        messages.innerHTML = ' '
+
+    })
 
 
 
